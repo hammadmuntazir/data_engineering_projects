@@ -1,0 +1,7 @@
+2026:April:25 08:34:41 - === ETL Process Started === 
+2026:April:25 08:34:41 - Data Extraction started  
+2026:April:25 08:34:50 - Data Transformation started  
+2026:April:25 08:34:50 - Transformed data is loaded in csv 
+2026:April:25 08:34:50 - Transfomed data is loaded in Json 
+2026:April:25 08:34:50 - Transformed data is load into database 
+2026:April:25 08:34:50 - Quering countries having gdp above 100 Billion 

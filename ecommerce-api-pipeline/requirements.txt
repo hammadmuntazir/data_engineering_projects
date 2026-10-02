@@ -1,0 +1,6 @@
+```text
+requests
+pandas
+numpy
+psycopg2-binary
+```

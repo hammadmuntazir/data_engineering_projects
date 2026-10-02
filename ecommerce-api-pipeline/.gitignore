@@ -1,0 +1,22 @@
+```text
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables
+.env
+
+# PostgreSQL / local files
+*.sql.bak
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+```
