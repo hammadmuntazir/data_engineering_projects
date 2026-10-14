@@ -12,10 +12,10 @@ Hands-on projects focused on extracting data, validating and transforming it, lo
 
 ## Broader learning portfolio
 
-- [SQL Data Engineering Projects](../SQL_Data_Engineering_Projects) — job-market SQL analysis, a dimensional model, and analytical data marts using DuckDB.
-- [SQL Server Data Warehouse Practice](../sql-data-warehouse-projects) — SQL Server database/schema setup and Bronze-layer table scripts.
-- [Python and pandas Projects](../Python_Pandas) — data cleaning, feature extraction, and analysis exercises.
-- [PySpark Practice](../Pyspark) — notebooks covering Spark sessions, DataFrames, transformations, schemas, and data types.
+- [SQL Data Engineering Projects](https://github.com/hammadmuntazir/SQL_Data_Engineering_Projects) — job-market SQL analysis, a dimensional model, and analytical data marts using DuckDB.
+- [SQL Server Data Warehouse Practice](https://github.com/hammadmuntazir/sql-data-warehouse-projects) — SQL Server database/schema setup and Bronze-layer table scripts.
+- [Python and pandas Projects](https://github.com/hammadmuntazir/Python_Pandas) — data cleaning, feature extraction, and analysis exercises.
+- [PySpark Practice](https://github.com/hammadmuntazir/Pyspark) — notebooks covering Spark sessions, DataFrames, transformations, schemas, and data types.
 
 ## Current skill focus
 
