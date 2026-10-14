@@ -1,174 +1,96 @@
-````markdown
-# E-Commerce API Data Pipeline
+# E-commerce API Data Pipeline
 
-A beginner Data Engineering project that extracts product data from a public API, validates and transforms the data using Python and Pandas, and loads it into PostgreSQL for SQL analytics.
+A practical ETL learning project that extracts product data from the public Fake Store API, saves the raw response, validates and transforms selected fields, loads the result into PostgreSQL, and supports SQL analysis.
 
-## Project Architecture
+## Architecture
 
+```text
 Fake Store API
-        ↓
-Python Requests
-        ↓
-Raw JSON
-        ↓
-Pandas DataFrame
-        ↓
-Validation
-        ↓
-Transformation
-        ↓
-PostgreSQL
-        ↓
-SQL Analytics
+    |
+    v
+Python Requests -> raw_products.json
+    |
+    v
+pandas validation and transformation
+    |
+    v
+PostgreSQL products table (upsert by product ID)
+    |
+    v
+SQL analytics
+```
 
+## Tech stack
 
-## Technologies
+Python, Requests, pandas, NumPy, PostgreSQL, psycopg2, and SQL.
 
-- Python
-- Requests
-- Pandas
-- NumPy
-- PostgreSQL
-- psycopg2
-- SQL
-- Git / GitHub
+## Data source
 
+The pipeline requests product records from [Fake Store API](https://fakestoreapi.com/products). It retains `id`, `title`, `price`, and `category`, then derives `price_category`:
 
-## Data Source
+- `Budget`: price below 50
+- `Mid-range`: price from 50 up to (but not including) 200
+- `Premium`: price 200 or above
 
-The project uses the Fake Store API:
+The script reports missing values, duplicate IDs, data types, price range, and categories. It writes the raw response to `data/raw_products.json` and upserts transformed rows into PostgreSQL table `products`.
 
-https://fakestoreapi.com/products
+## Repository layout
 
-The API provides product information including:
+```text
+ecommerce-api-pipeline/
+├── data/
+│   └── raw_products.json
+├── sql/
+│   └── analysis.sql
+├── src/
+│   └── api_extraction.py
+├── requirements.txt
+└── README.md
+```
 
-- Product ID
-- Product title
-- Price
-- Category
-- Description
-- Image
-- Rating
+## Prerequisites
 
+- Python 3.10 or newer
+- A running local PostgreSQL server
+- A PostgreSQL database named `ecommerce_db`
+- Network access to the API
 
-## Pipeline Steps
+## Setup and run
 
-### 1. Extract
-
-Python Requests sends a GET request to the Fake Store API.
-
-The raw API response is saved as:
-
-`data/raw_products.json`
-
-### 2. Validate
-
-The pipeline checks:
-
-- Missing values
-- Duplicate product IDs
-- Data types
-- Minimum price
-- Maximum price
-- Product categories
-
-### 3. Transform
-
-Only the required columns are selected:
-
-- id
-- title
-- price
-- category
-
-A new `price_category` column is created:
-
-- Budget: price < 50
-- Mid-range: price < 200
-- Premium: price >= 200
-
-### 4. Load
-
-The transformed data is loaded into a PostgreSQL database named:
-
-`ecommerce_db`
-
-The table is:
-
-`products`
-
-The pipeline uses PostgreSQL UPSERT logic so that running the pipeline multiple times does not create duplicate products.
-
-### 5. Analytics
-
-SQL queries are used to analyze:
-
-- Total number of products
-- Average price by category
-- Most expensive products
-- Product counts by price category
-- Average price by price category
-- Products above a specific price
-- Categories with average price above 100
-
-
-## Database Table
-
-The `products` table contains:
-
-| Column | Type |
-|---|---|
-| id | INTEGER |
-| title | TEXT |
-| price | NUMERIC |
-| category | TEXT |
-| price_category | TEXT |
-
-
-## How to Run
-
-Install the required packages:
+From the repository root, install dependencies:
 
 ```bash
-pip install -r requirements.txt
-````
+python -m pip install -r ecommerce-api-pipeline/requirements.txt
+```
 
-Make sure PostgreSQL is installed and the database exists:
+Create the database if it does not already exist:
 
-`ecommerce_db`
+```sql
+CREATE DATABASE ecommerce_db;
+```
 
-Update the PostgreSQL password in:
+Set the password as an environment variable rather than saving credentials in the source code.
 
-`src/pipeline.py`
+PowerShell:
 
-Then run:
+```powershell
+$env:PGPASSWORD = "your-local-postgres-password"
+python ecommerce-api-pipeline/src/api_extraction.py
+```
+
+macOS/Linux shell:
 
 ```bash
-python src/pipeline.py
+export PGPASSWORD="your-local-postgres-password"
+python ecommerce-api-pipeline/src/api_extraction.py
 ```
 
-The pipeline will:
+Optional connection settings are read from `PGHOST` (default `localhost`), `PGPORT` (default `5432`), `PGDATABASE` (default `ecommerce_db`), and `PGUSER` (default `postgres`). Never commit a real password or token.
 
-1. Extract data from the API
-2. Save the raw JSON
-3. Validate the data
-4. Transform the data
-5. Load the data into PostgreSQL
-6. Complete the pipeline
+## SQL analysis
 
-## Learning Goals
+Run the queries in [sql/analysis.sql](./sql/analysis.sql) against the `ecommerce_db` database after the pipeline has loaded the `products` table. The queries cover product counts, category prices, price bands, and other basic summaries.
 
-This project was built to practice fundamental Data Engineering concepts:
+## Scope and limitations
 
-* API data extraction
-* JSON handling
-* Data validation
-* Data transformation
-* ETL pipelines
-* PostgreSQL
-* Database loading
-* UPSERT
-* SQL analytics
-
-```
-```
+This is a small, local ETL project—not a hosted service or production-grade pipeline. The script currently reports several quality checks for inspection; it does not implement a separate automated test suite.
