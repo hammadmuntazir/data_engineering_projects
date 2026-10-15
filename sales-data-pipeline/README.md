@@ -1,6 +1,6 @@
 # Sales Data Pipeline
 
-A small end-to-end ETL practice project that reads sample sales data from CSV, performs validation checks, derives analytical fields with pandas, loads the result into SQLite, and runs revenue queries.
+A small end-to-end ETL practice project that reads sales data from CSV, reports data-quality checks, derives analytical fields with pandas, loads the result into SQLite, and runs revenue queries.
 
 ## Pipeline
 
@@ -30,6 +30,7 @@ SQL analysis: revenue by product, region, salesperson, and month
 - pandas and NumPy
 - SQLite
 - SQL
+- pytest for automated tests
 
 ## Repository layout
 
@@ -44,6 +45,9 @@ sales-data-pipeline/
 ├── src/
 │   └── pipeline.py
 └── README.md
+
+tests/
+└── test_sales_pipeline.py
 ```
 
 ## Input columns
@@ -70,8 +74,19 @@ python sales-data-pipeline/src/pipeline.py
 
 The script reads the sample file and writes the SQLite database relative to its own file location, so it does not depend on the terminal's current directory.
 
-To run the analysis separately, open `database/sales.db` with a SQLite client and execute the queries in `sql/analysis.sql`.
+To run the analysis separately, open `sales-data-pipeline/database/sales.db` with a SQLite client and execute the queries in `sales-data-pipeline/sql/analysis.sql`.
+
+## Run tests
+
+Install the project dependencies and pytest, then run the test suite from the repository root:
+
+```bash
+python -m pip install -r sales-data-pipeline/requirements.txt pytest
+python -m pytest -q tests/test_sales_pipeline.py
+```
+
+A GitHub Actions workflow runs these tests when relevant project files change. The tests cover transformation boundaries, input immutability, quality-check reporting, and SQLite loading.
 
 ## Scope and limitations
 
-This is a local, single-file ETL exercise intended to demonstrate fundamental pipeline stages. It does not use a cloud scheduler, distributed compute, or automated test suite.
+This is a local ETL learning project. It does not use a cloud scheduler or distributed compute. Data-quality checks are currently reported for inspection rather than enforcing a strict reject/quarantine policy. The automated tests cover core behavior but do not replace a full integration run in your local environment.
