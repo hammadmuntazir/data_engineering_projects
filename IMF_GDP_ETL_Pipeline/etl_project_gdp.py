@@ -1,98 +1,132 @@
-# Code for ETL operations on Country-GDP data
+"""Extract, transform, and load country GDP data from an archived Wikipedia page.
 
-# Importing the required libraries
-import requests
+The source page presents GDP estimates sourced from IMF publications. This project
+scrapes that page; it does not call an official IMF API.
+"""
+from __future__ import annotations
+
+import logging
+import re
 import sqlite3
+from pathlib import Path
+
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
-import os
 
-url='https://web.archive.org/web/20230902185326/https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)'
-
-json_name='Countries_by_GDP.json'
-csv_name='Countries_by_GDP.csv'
-table_name='Countries_by_GDP'
-db_name='World_Economies.db'
-log_file='etl_project_log.txt'
-# attribute_list_extract =['Country', 'GDP_USD_Billion']
-transformed_file="countries_by_GDP.csv"
-
-def extract(url):
-      #empty dataframe 
-    df = pd.DataFrame(columns=['Country', 'GDP_USD_Million'])
-
-    html_body=requests.get(url).text
-    data=BeautifulSoup(html_body,'html.parser')
-    tables=data.find_all('tbody')
-    rows=tables[2].find_all('tr')
-    for row in rows[3:]:
-        # print(f'{row}    ,\n\n\n\n row got ended')
-        columns=row.find_all('td')
-        country_cells=columns[0]
-        country_link=country_cells.find('a')
-        country=country_link.text
-        gdp=columns[2].text
-        # print(gdp)
-        # dictionary={'Country':country,'GDP_Billion_USD':gdp}
-        if gdp and gdp != '—' and gdp.lower() not in ['n/a', 'na', '']:
-            gdp_value=float(gdp.replace(',',''))
-            df1 = pd.DataFrame({'Country': [country], 'GDP_USD_Million': [gdp_value]})
-            df=pd.concat([df,df1],ignore_index=True)
-    return df
-    # print(df.to_string())
-# extract()
-
-def transform(df):
-    transformed_data=pd.DataFrame()
-    transformed_data['Country']=df['Country']
-    # converting millions into billions
-    transformed_data['GDP_USD_Billion']=(df['GDP_USD_Million']/1000).round(2)
-
-    return transformed_data
+URL = (
+    "https://web.archive.org/web/20230902185326/"
+    "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+)
+TABLE_NAME = "Countries_by_GDP"
+OUTPUT_DIR = Path(__file__).resolve().parent / "Output"
+GDP_COLUMNS = ["Country", "GDP_USD_Million"]
 
 
+def extract(url: str = URL) -> pd.DataFrame:
+    """Fetch the source page and extract country GDP values in USD millions."""
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+    tables = soup.find_all("tbody")
+    if len(tables) <= 2:
+        raise ValueError("Expected GDP table was not found in the source HTML.")
 
-    #  Loading DaTa to csv
-def load_to_csv(target_file,transformeddata):
-    transformeddata.to_csv(target_file,index=False)
+    records: list[dict[str, object]] = []
+    for row in tables[2].find_all("tr")[3:]:
+        cells = row.find_all("td")
+        if len(cells) < 3:
+            continue
 
-    # Loading Data To Json
-def load_to_json(target_file,transformeddata):
-    transformeddata.to_json(target_file,orient='records', indent=2)
-   #Load to database
-def load_to_database(transformeddata,database_name,table_name):
-    conn=sqlite3.connect(database_name)
-    transformeddata.to_sql(table_name,conn,if_exists='replace',index=False)
-    conn.close()
+        link = cells[0].find("a")
+        country = link.get_text(strip=True) if link else cells[0].get_text(strip=True)
+        raw_gdp = cells[2].get_text(" ", strip=True).replace(",", "")
+        match = re.search(r"\d+(?:\.\d+)?", raw_gdp)
+        if not country or not match:
+            continue
 
-    # Querying database
-def query_database(database_name,table_name):
-    conn=sqlite3.connect(database_name)
-    query=f"SELECT Country,GDP_USD_Billion from {table_name} WHERE GDP_USD_Billion>100 ORDER BY GDP_USD_Billion DESC LIMIT 100"
-    df_result=pd.read_sql_query(query,conn)
-    conn.close()
-    
-    df_result.to_csv('countries_above_100b.csv',index=False)
+        records.append({"Country": country, "GDP_USD_Million": float(match.group())})
 
-# logging
-def log(message):
-    timestamp=datetime.now().strftime('%Y:%B:%d %H:%M:%S')
-    with open(log_file,"a")as f:
-        f.write(f"{timestamp} - {message} \n")
-# 
+    return pd.DataFrame(records, columns=GDP_COLUMNS)
+
+
+def transform(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert GDP from USD millions to USD billions, rounded to 2 decimals."""
+    missing = set(GDP_COLUMNS) - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {', '.join(sorted(missing))}")
+    result = pd.DataFrame({"Country": df["Country"].copy()})
+    result["GDP_USD_Billion"] = (pd.to_numeric(df["GDP_USD_Million"], errors="raise") / 1000).round(2)
+    return result
+
+
+def load_to_csv(target_file: str | Path, transformed_data: pd.DataFrame) -> None:
+    Path(target_file).parent.mkdir(parents=True, exist_ok=True)
+    transformed_data.to_csv(target_file, index=False)
+
+
+def load_to_json(target_file: str | Path, transformed_data: pd.DataFrame) -> None:
+    Path(target_file).parent.mkdir(parents=True, exist_ok=True)
+    transformed_data.to_json(target_file, orient="records", indent=2)
+
+
+def load_to_database(
+    transformed_data: pd.DataFrame,
+    database_name: str | Path,
+    table_name: str = TABLE_NAME,
+) -> None:
+    Path(database_name).parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(database_name) as connection:
+        transformed_data.to_sql(table_name, connection, if_exists="replace", index=False)
+
+
+def query_database(
+    database_name: str | Path,
+    output_file: str | Path,
+    table_name: str = TABLE_NAME,
+) -> pd.DataFrame:
+    """Export countries with GDP above 100 billion USD and return the result."""
+    # table_name is a project constant, not user input.
+    query = (
+        f'SELECT Country, GDP_USD_Billion FROM "{table_name}" '
+        "WHERE GDP_USD_Billion > ? ORDER BY GDP_USD_Billion DESC LIMIT 100"
+    )
+    with sqlite3.connect(database_name) as connection:
+        result = pd.read_sql_query(query, connection, params=(100,))
+    load_to_csv(output_file, result)
+    return result
+
+
+def main(output_dir: str | Path = OUTPUT_DIR) -> None:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        filename=output_dir / "etl_project_log.txt",
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        force=True,
+    )
+    try:
+        logging.info("ETL process started")
+        logging.info("Extracting source data")
+        extracted = extract()
+        if extracted.empty:
+            raise ValueError("Extraction returned no country GDP records.")
+
+        logging.info("Transforming %s records", len(extracted))
+        transformed = transform(extracted)
+        load_to_csv(output_dir / "Countries_by_GDP.csv", transformed)
+        load_to_json(output_dir / "Countries_by_GDP.json", transformed)
+        load_to_database(transformed, output_dir / "World_Economies.db")
+        query_database(
+            output_dir / "World_Economies.db",
+            output_dir / "countries_above_100b.csv",
+        )
+        logging.info("ETL process completed successfully: %s records", len(transformed))
+    except Exception:
+        logging.exception("ETL process failed")
+        raise
+
+
 if __name__ == "__main__":
-    log("=== ETL Process Started ===") 
-    log("Data Extraction started ")
-    extracted_data=extract(url)
-    # print(extracted_data)
-    log("Data Transformation started ")
-    final_data=transform(extracted_data)
-    log("Transformed data is loaded in csv")
-    load_to_csv(csv_name,final_data)
-    log("Transfomed data is loaded in Json")
-    load_to_json(json_name,final_data)
-    log("Transformed data is load into database")
-    load_to_database(final_data,db_name,table_name)
-    log('Quering countries having gdp above 100 Billion')
-    query_database(db_name,table_name)
+    main()
