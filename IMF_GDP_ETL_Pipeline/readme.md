@@ -1,45 +1,45 @@
-# 🌍 IMF GDP Data ETL Pipeline
+# Country GDP ETL Pipeline
 
-An automated ETL (Extract, Transform, Load) pipeline that extracts country GDP data from the International Monetary Fund (IMF) via Wikipedia, transforms it into billion USD, and loads it into multiple formats for business use.
+A small Python ETL project that scrapes a historical Wikipedia page whose GDP estimates are attributed to IMF publications, converts GDP values from USD millions to USD billions, and writes CSV, JSON, and SQLite outputs.
 
----
+> **Source limitation:** this project scrapes an archived Wikipedia page. It does not call an official IMF API, and the archived snapshot is historical rather than a live twice-yearly feed.
 
-## 🎯 **Project Scenario**
+## Pipeline
 
-> *An international firm expanding across countries needs an automated script to extract GDP data (in billion USD, rounded to 2 decimals) as updated by the IMF twice a year. The output must be available as JSON, CSV, and a database table, with a query to filter high-economy countries (>100B USD).*
+1. **Extract:** fetch the archived page with a timeout and HTTP status check, then parse country GDP values.
+2. **Transform:** convert USD millions to USD billions and round to two decimal places.
+3. **Load:** write CSV and JSON files and replace the SQLite `Countries_by_GDP` table.
+4. **Query:** export up to 100 countries with GDP strictly greater than USD 100 billion, sorted by GDP descending.
+5. **Logging:** record successful completion or the exception in the output directory's log file.
 
----
+## Tech stack
 
-## 🔧 **Tech Stack**
+Python, Requests, BeautifulSoup, pandas, SQLite, pytest, and GitHub Actions.
 
-| Category | Tools |
-|----------|-------|
-| Language | Python |
-| Web Scraping | Requests, BeautifulSoup |
-| Data Processing | Pandas |
-| Database | SQLite3 |
-| Output Formats | CSV, JSON, SQLite |
-| Logging | Custom log file with timestamps |
+## Run locally
 
----
-
-## 📁 **Output Files**
-
-| File | Description |
-|------|-------------|
-| `Countries_by_GDP.csv` | CSV file with Country and GDP_USD_Billion |
-| `Countries_by_GDP.json` | JSON file with same data |
-| `World_Economies.db` | SQLite database with table `Countries_by_GDP` |
-| `countries_above_100b.csv` | Query result (GDP > 100B USD) |
-| `etl_project_log.txt` | Execution log with timestamps |
-
----
-
-## 🚀 **How to Run**
+From this directory:
 
 ```bash
-# 1. Install dependencies
-pip install requests beautifulsoup4 pandas
-
-# 2. Run the script
+python -m venv .venv
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
 python etl_project_gdp.py
+```
+
+Outputs are written to `Output/`: `Countries_by_GDP.csv`, `Countries_by_GDP.json`, `World_Economies.db`, `countries_above_100b.csv`, and `etl_project_log.txt`.
+
+## Run tests
+
+```bash
+pytest -q
+```
+
+Tests mock the source HTML and do not depend on a live website or an external database.
+
+## Scope and limitations
+
+- The source HTML structure can change, so extraction may need maintenance.
+- The archived page represents a historical snapshot; the outputs should not be presented as current GDP figures.
+- The pipeline uses SQLite and local files for a learning/demo workflow, not a production data platform.
