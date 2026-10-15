@@ -1,6 +1,7 @@
 -- 1. Count products
 SELECT COUNT(*) FROM products;
-#20 
+-- Expected sample API record count: 20
+
 
 -- 2. Average price by category
 
@@ -87,7 +88,7 @@ WHERE price > 70;
 --  14 | Samsung 49-Inch CHG90 144Hz Curved Gaming Monitor (LC49HG90DMNXZA) - Super Ultrawide Screen QLED  | 999.99
 -- (8 rows)
 
--- he average price of products in each category, but only include categories whose average price is greater than 100.
+-- The average price of products in each category, but only include categories whose average price is greater than 100.
 SELECT category, AVG(price) AS average_price
 FROM products
 GROUP BY category

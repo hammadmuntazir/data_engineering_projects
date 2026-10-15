@@ -1,14 +1,18 @@
-```text
 # Python
 __pycache__/
 *.py[cod]
 
-# Virtual environment
+# Virtual environments
 venv/
 .venv/
 
-# Environment variables
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Generated data (keep source code and SQL tracked)
+data/raw_products.json
 
 # PostgreSQL / local files
 *.sql.bak
@@ -19,4 +23,3 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
-```
